@@ -2,10 +2,7 @@
 
 a tiny extension to fix a missing feature in Notion: there is no built‑in way to toggle the right sidebar (context panel). this adds a simple keyboard toggle and an optional auto‑hide.
 
-<video width="600" controls>
-  <source src="https://github.com/dinablachman/notion-toggle/assets/notion-toggle-demo.mp4" type="video/mp4">
-  your browser does not support the video tag.
-</video>
+https://github.com/user-attachments/assets/933a1be6-4784-4f36-8fea-6a11485551df
 
 ### features
 - keyboard toggle: cmd+/ (mac) or ctrl+/ (windows/linux)
