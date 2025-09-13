@@ -1,5 +1,8 @@
 const DEFAULT_OPEN_WIDTH = "250px";
 const WIDTH_KEY = "ncst_open_width";
+const AUTO_HIDE_KEY = "ncst_auto_hide";
+
+let autoHideEnabled = false;
 
 function isTextEditing(el) {
   if (!el) return false;
@@ -44,6 +47,27 @@ function toggleSidebar() {
     // force notion + embeds to redraw
     window.dispatchEvent(new Event("resize"));
   }
+
+function hideSidebar() {
+  setWidth("0px");
+  window.dispatchEvent(new Event("resize"));
+}
+
+async function checkAutoHideSetting() {
+  try {
+    const result = await chrome.storage.sync.get([AUTO_HIDE_KEY]);
+    autoHideEnabled = result[AUTO_HIDE_KEY] || false;
+    
+    if (autoHideEnabled) {
+      // Wait a bit for Notion to initialize, then hide the sidebar
+      setTimeout(() => {
+        hideSidebar();
+      }, 100);
+    }
+  } catch (error) {
+    console.error('Error checking auto-hide setting:', error);
+  }
+}
   
 
 function nudgeInitialWidth() {
@@ -61,7 +85,10 @@ document.addEventListener("keydown", (e) => {
   const metaOrCtrl = e.metaKey || e.ctrlKey;
 
   if (!metaOrCtrl || !slashPressed) return;
-  if (isTextEditing(document.activeElement)) return; // don’t interfere with typing
+  if (isTextEditing(document.activeElement)) return; // don't interfere with typing
+  
+  // If auto-hide is enabled, don't allow manual toggling
+  if (autoHideEnabled) return;
 
   e.preventDefault();
   e.stopPropagation();
@@ -71,18 +98,17 @@ document.addEventListener("keydown", (e) => {
 
 nudgeInitialWidth();
 
-// OPTIONAL: alt+cmd+= (or alt+ctrl+=) to quickly save the current open width as your default
-document.addEventListener("keydown", (e) => {
-  const plusPressed = e.key === "="; // the '+' key without shift
-  const metaOrCtrl = e.metaKey || e.ctrlKey;
-  if (!(metaOrCtrl && e.altKey && plusPressed)) return;
-  if (isTextEditing(document.activeElement)) return;
+// Check auto-hide setting on page load
+checkAutoHideSetting();
 
-  e.preventDefault();
-  const current = getCurrentWidth();
-  if (current !== "0px") {
-    saveOpenWidth(current);
-  } else {
-    saveOpenWidth(DEFAULT_OPEN_WIDTH);
+// Listen for messages from popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'autoHideSettingChanged') {
+    autoHideEnabled = request.enabled;
+    if (autoHideEnabled) {
+      hideSidebar();
+    }
+    // If disabled, we don't need to do anything - user can toggle manually again
   }
-}, { capture: true });
+});
+
